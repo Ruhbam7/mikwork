@@ -55,7 +55,8 @@ class _SignupscreenState extends State<Signupscreen>
           password: passwordcontroller.text.toString(),
         )
         .then((value) {
-          Utils().toastmessage("Signed up as: ${value.user!.email}");
+           if(!mounted) return;
+          Utils().toastmessage(context,"Signed up as: ${value.user!.email}");
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const loginscreen()),
@@ -66,7 +67,8 @@ class _SignupscreenState extends State<Signupscreen>
         })
         .onError((error, stackTrace) {
           debugPrint(error.toString());
-          Utils().toastmessage(error.toString());
+           if(!mounted) return;
+          Utils().toastmessage(context,error.toString());
           setState(() {
             loading = false;
           });

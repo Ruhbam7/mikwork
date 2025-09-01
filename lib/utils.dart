@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:another_flushbar/flushbar.dart';
 
 class Utils {
-  void toastmessage(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 1,
+  void toastmessage(BuildContext context, String message) {
+    Flushbar(
+      message: message,
+      duration: const Duration(seconds: 2),
+      margin: const EdgeInsets.all(8),
+      borderRadius: BorderRadius.circular(8),
       backgroundColor: const Color.fromARGB(255, 172, 8, 8),
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
+      messageColor: Colors.white,
+    ).show(context);
   }
 }

@@ -385,7 +385,7 @@ class _PostScreenState extends State<PostScreen> {
           );
         })
         .onError((error, stackTrace) {
-          Utils().toastmessage(error.toString());
+          Utils().toastmessage(context,error.toString());
         });
   }
 
@@ -403,10 +403,10 @@ class _PostScreenState extends State<PostScreen> {
             .child(itemKey)
             .remove()
             .then((_) {
-              Utils().toastmessage('Deleted Successfully');
+              Utils().toastmessage(context,'Deleted Successfully');
             })
             .onError((error, stackTrace) {
-              Utils().toastmessage(error.toString());
+              Utils().toastmessage(context,error.toString());
             });
       }
     }
@@ -568,7 +568,7 @@ class _PostScreenState extends State<PostScreen> {
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
                           Utils().toastmessage(
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
+                            context,"You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
                         }
@@ -596,7 +596,7 @@ class _PostScreenState extends State<PostScreen> {
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
                           Utils().toastmessage(
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
+                            context,"You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
                         }
@@ -623,7 +623,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -651,7 +651,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -679,7 +679,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -707,7 +707,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -735,7 +735,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -763,7 +763,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -791,7 +791,7 @@ class _PostScreenState extends State<PostScreen> {
 
                         if (value == true &&
                             selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
+                          Utils().toastmessage(context,
                             "You have reached the limit. Please change the subscription plan to select more editions.",
                           );
                           return; // prevent adding more
@@ -844,7 +844,7 @@ class _PostScreenState extends State<PostScreen> {
                           setState(() {}); // refresh FirebaseAnimatedList
                         })
                         .catchError((error) {
-                          Utils().toastmessage(error.toString());
+                          Utils().toastmessage(context,error.toString());
                         });
                   },
                   style: ElevatedButton.styleFrom(
@@ -890,10 +890,12 @@ class _PostScreenState extends State<PostScreen> {
               'Sent Editions': editionsString,
             })
             .then((_) {
-              Utils().toastmessage('Updated Successfully');
+               if(!mounted) return;
+              Utils().toastmessage(context,'Updated Successfully');
             })
             .catchError((error) {
-              Utils().toastmessage(error.toString());
+               if(!mounted) return;
+              Utils().toastmessage(context,error.toString());
             });
       }
     }
@@ -918,10 +920,12 @@ class _PostScreenState extends State<PostScreen> {
             .child(itemKey)
             .update({'Number of Magazine': numberOfMagazines})
             .then((_) {
-              Utils().toastmessage('Number of Magazines Updated Successfully');
+               if(!mounted) return;
+              Utils().toastmessage(context,'Number of Magazines Updated Successfully');
             })
             .catchError((error) {
-              Utils().toastmessage(error.toString());
+               if(!mounted) return;
+              Utils().toastmessage(context,error.toString());
             });
       }
     }

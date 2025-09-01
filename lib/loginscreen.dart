@@ -56,7 +56,8 @@ class _loginscreenState extends State<loginscreen>
           password: passwordcontroller.text.toString(),
         )
         .then((value) {
-          Utils().toastmessage(value.user!.email.toString());
+          if(!mounted) return;
+          Utils().toastmessage(context,value.user!.email.toString());
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -67,7 +68,8 @@ class _loginscreenState extends State<loginscreen>
         })
         .onError((error, stackTrace) {
           debugPrint(error.toString());
-          Utils().toastmessage(error.toString());
+          if(!mounted) return;
+          Utils().toastmessage(context,error.toString());
           setState(() {
             loading = false;
           });
@@ -169,7 +171,7 @@ class _loginscreenState extends State<loginscreen>
                               onPressed: () {
                                 // You can implement password reset here
                                 Utils().toastmessage(
-                                  'Password reset coming soon!',
+                                  context,'Password reset coming soon!',
                                 );
                               },
                               child: const Text(

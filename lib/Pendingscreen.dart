@@ -345,7 +345,8 @@ class _PendingScreenState extends State<PendingScreen> {
           );
         })
         .onError((error, stackTrace) {
-          Utils().toastmessage(error.toString());
+          if(!mounted) return;
+          Utils().toastmessage(context,error.toString());
         });
   }
 
@@ -365,16 +366,19 @@ class _PendingScreenState extends State<PendingScreen> {
                 .child(itemKey)
                 .update({'payment status': status})
                 .then((_) {
-                  Utils().toastmessage('Payment status updated successfully');
+                  if(!mounted) return;
+                  Utils().toastmessage(context,'Payment status updated successfully');
                 })
                 .onError((error, stackTrace) {
-                  Utils().toastmessage(error.toString());
+                  if(!mounted) return;
+                  Utils().toastmessage(context,error.toString());
                 });
           }
         }
       }
     } catch (e) {
-      Utils().toastmessage('Error updating payment status: $e');
+      if(!mounted) return;
+      Utils().toastmessage(context,'Error updating payment status: $e');
     }
   }
 
@@ -392,15 +396,15 @@ class _PendingScreenState extends State<PendingScreen> {
               .child(itemKey)
               .remove()
               .then((_) {
-                Utils().toastmessage('Deleted Successfully');
+                Utils().toastmessage(context,'Deleted Successfully');
               })
               .onError((error, stackTrace) {
-                Utils().toastmessage(error.toString());
+                Utils().toastmessage(context,error.toString());
               });
         }
       }
     } catch (e) {
-      Utils().toastmessage('Error deleting registration: $e');
+      Utils().toastmessage(context,'Error deleting registration: $e');
     }
   }
 
@@ -458,10 +462,10 @@ class _PendingScreenState extends State<PendingScreen> {
                           'mentor': _editsController.text.trim().toLowerCase(),
                         })
                         .then((_) {
-                          Utils().toastmessage('Updated Successfully');
+                          Utils().toastmessage(context,'Updated Successfully');
                         })
                         .onError((error, stackTrace) {
-                          Utils().toastmessage(error.toString());
+                          Utils().toastmessage(context,error.toString());
                         });
                   }
                 }

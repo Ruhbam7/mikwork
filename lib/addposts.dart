@@ -275,7 +275,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                         totalMagazinesAllowed) {
                       selectedMagazineEditions.add(edition);
                     } else {
-                      Utils().toastmessage(
+                      Utils().toastmessage(context,
                         "You can only select $totalMagazinesAllowed editions.",
                       );
                     }
@@ -345,11 +345,13 @@ class _AddPostScreenState extends State<AddPostScreen> {
           'Sent Editions': selectedMagazineEditions.toList(),
         })
         .then((_) {
-          Utils().toastmessage('REGISTRATION ADDED');
+          if(!mounted) return;
+          Utils().toastmessage(context,'REGISTRATION ADDED');
           setState(() => loading = false);
         })
         .catchError((error) {
-          Utils().toastmessage(error.toString());
+          if(!mounted) return;
+          Utils().toastmessage(context,error.toString());
           setState(() => loading = false);
         });
   }
