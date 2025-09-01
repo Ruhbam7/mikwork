@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "978907495834",
+    "project_id": "hope-testing",
+    "storage_bucket": "hope-testing.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978907495834:android:4b1aa82ffd201d961f8e23",
+        "android_client_info": {
+          "package_name": "com.ruhbam.hope"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuutGqD4KwrRSQWSTvQ0JQ0iP8BjlhFmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
