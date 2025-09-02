@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:hope/home.dart';
 import 'package:hope/loginscreen.dart';
 import 'package:hope/postscreen.dart';
 
@@ -16,7 +17,7 @@ class splashservices {
       Timer(
         const Duration(seconds: 3),
         () => Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const PostScreen())));
+            context, MaterialPageRoute(builder: (context) => const HomeScreen())));
     }else {
       Timer(
         const Duration(seconds: 3),

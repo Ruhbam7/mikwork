@@ -180,8 +180,9 @@ class _AddPostScreenState extends State<AddPostScreen> {
       setState(() {
         selectedDate = picked;
         controller.text = DateFormat('dd-MM-yyyy').format(picked);
-        if (isDOB)
+        if (isDOB) {
           ageController.text = (DateTime.now().year - picked.year).toString();
+        }
       });
     }
   }
@@ -190,7 +191,11 @@ class _AddPostScreenState extends State<AddPostScreen> {
     return _buildDropdown(
       label: 'Subscription Plan',
       value: selectedSubscriptionPlan,
-      items: ['One Year', 'Two Year', 'Three Year'],
+      items: [
+        'One Year', 
+        'Two Year', 
+        'Three Year',
+      ],
       onChanged: (String? newValue) {
         setState(() {
           selectedSubscriptionPlan = newValue!;
@@ -239,18 +244,59 @@ class _AddPostScreenState extends State<AddPostScreen> {
     );
   }
 
+  // Enhanced method for more flexible subscription plans
+  Map<String, int> _getSubscriptionDetails(String plan) {
+    switch (plan) {
+      case 'One Year':
+        return {'years': 1, 'magazines': 3};
+      case 'Two Year':
+        return {'years': 2, 'magazines': 6};
+      case 'Three Year':
+        return {'years': 3, 'magazines': 9};
+      default:
+        return {'years': 1, 'magazines': 3};
+    }
+  }
+
+  List<String> _generateMagazineEditions() {
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final seasons = ['Spring', 'Summer', 'Winter'];
+    final List<String> editions = [];
+    
+    final subscriptionDetails = _getSubscriptionDetails(selectedSubscriptionPlan);
+    final yearsToGenerate = subscriptionDetails['years']!;
+    
+    // Handle special case for 6 months subscription
+    // if (selectedSubscriptionPlan == 'Six Months') {
+    //   final currentMonth = now.month;
+    //   if (currentMonth <= 3) {
+    //     editions.add('Spring Edition $currentYear');
+    //     editions.add('Summer Edition $currentYear');
+    //   } else if (currentMonth <= 6) {
+    //     editions.add('Summer Edition $currentYear');
+    //     editions.add('Winter Edition $currentYear');
+    //   } else {
+    //     editions.add('Winter Edition $currentYear');
+    //     editions.add('Spring Edition ${currentYear + 1}');
+    //   }
+    //   return editions;
+    // }
+    
+    // Generate editions for multi-year subscriptions
+    for (int yearOffset = 0; yearOffset < yearsToGenerate; yearOffset++) {
+      final year = currentYear + yearOffset;
+      for (String season in seasons) {
+        editions.add('$season Edition $year');
+      }
+    }
+    
+    return editions;
+  }
+
   Widget _buildMagazineCheckboxList() {
-    final magazineEditions = [
-      'Spring Edition 2025',
-      'Summer Edition 2025',
-      'Winter Edition 2025',
-      'Spring Edition 2026',
-      'Summer Edition 2026',
-      'Winter Edition 2026',
-      'Spring Edition 2027',
-      'Summer Edition 2027',
-      'Winter Edition 2027',
-    ];
+    final magazineEditions = _generateMagazineEditions();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -297,20 +343,16 @@ class _AddPostScreenState extends State<AddPostScreen> {
   void _updateSubscriptionDetails() {
     final now = DateTime.now();
     selectedStartDate = now;
+    
+    final subscriptionDetails = _getSubscriptionDetails(selectedSubscriptionPlan);
+    final years = subscriptionDetails['years']!;
+    totalMagazinesAllowed = subscriptionDetails['magazines']!;
 
-    switch (selectedSubscriptionPlan) {
-      case 'One Year':
-        selectedEndDate = DateTime(now.year + 1, now.month, now.day);
-        totalMagazinesAllowed = 3;
-        break;
-      case 'Two Year':
-        selectedEndDate = DateTime(now.year + 2, now.month, now.day);
-        totalMagazinesAllowed = 6;
-        break;
-      case 'Three Year':
-        selectedEndDate = DateTime(now.year + 3, now.month, now.day);
-        totalMagazinesAllowed = 9;
-        break;
+    // Calculate end date based on subscription plan
+    if (selectedSubscriptionPlan == 'Six Months') {
+      selectedEndDate = DateTime(now.year, now.month + 6, now.day);
+    } else {
+      selectedEndDate = DateTime(now.year + years, now.month, now.day);
     }
 
     selectedMagazineEditions.clear();

@@ -23,7 +23,92 @@ class _PostScreenState extends State<PostScreen> {
   final TextEditingController _editsController = TextEditingController();
   final TextEditingController _editssController = TextEditingController();
   final TextEditingController _editMagazinesController =
-      TextEditingController();
+  TextEditingController();
+
+  // Add these new methods for dynamic year generation
+  Map<String, int> _getSubscriptionDetails(String plan) {
+    switch (plan.trim().toLowerCase()) {
+      case 'one year':
+        return {'years': 1, 'magazines': 3};
+      case 'two year':
+        return {'years': 2, 'magazines': 6};
+      case 'three year':
+        return {'years': 3, 'magazines': 9};
+      default:
+        return {'years': 1, 'magazines': 3};
+    }
+  }
+
+  List<String> _generateMagazineEditions(String subscriptionPlan) {
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final seasons = ['Spring', 'Summer', 'Winter'];
+    final List<String> editions = [];
+
+    final subscriptionDetails = _getSubscriptionDetails(subscriptionPlan);
+    final yearsToGenerate = subscriptionDetails['years']!;
+
+    // Handle special case for 6 months subscription
+    if (subscriptionPlan.toLowerCase() == 'six months') {
+      final currentMonth = now.month;
+      if (currentMonth <= 3) {
+        editions.add('Spring Edition $currentYear');
+        editions.add('Summer Edition $currentYear');
+      } else if (currentMonth <= 6) {
+        editions.add('Summer Edition $currentYear');
+        editions.add('Winter Edition $currentYear');
+      } else {
+        editions.add('Winter Edition $currentYear');
+        editions.add('Spring Edition ${currentYear + 1}');
+      }
+      return editions;
+    }
+
+    // Generate editions for multi-year subscriptions
+    for (int yearOffset = 0; yearOffset < yearsToGenerate; yearOffset++) {
+      final year = currentYear + yearOffset;
+      for (String season in seasons) {
+        editions.add('$season Edition $year');
+      }
+    }
+
+    return editions;
+  }
+
+  // Updated method to handle subscription plan changes intelligently
+  List<String> _getAvailableEditionsForUpgrade(
+      String currentPlan,
+      String newPlan,
+      Set<String> alreadySelected
+      ) {
+    final currentDetails = _getSubscriptionDetails(currentPlan);
+    final newDetails = _getSubscriptionDetails(newPlan);
+
+    // If upgrading to more years, only show additional years
+    if (newDetails['years']! > currentDetails['years']!) {
+      final now = DateTime.now();
+      final currentYear = now.year;
+      final seasons = ['Spring', 'Summer', 'Winter'];
+      final List<String> additionalEditions = [];
+
+      // Generate only the additional years
+      for (int yearOffset = currentDetails['years']!; yearOffset < newDetails['years']!; yearOffset++) {
+        final year = currentYear + yearOffset;
+        for (String season in seasons) {
+          additionalEditions.add('$season Edition $year');
+        }
+      }
+
+      return additionalEditions;
+    }
+
+    // If downgrading or same, show all editions for the new plan
+    return _generateMagazineEditions(newPlan);
+  }
+
+  int getAllowedBasedOnPlan(String plan) {
+    return _getSubscriptionDetails(plan)['magazines']!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +191,7 @@ class _PostScreenState extends State<PostScreen> {
                     snapshot.child('Subscription Plan').value?.toString() ?? '';
                 final String NumberofMagazine =
                     snapshot.child('Number of Magazine').value?.toString() ??
-                    '';
+                        '';
                 final String Magazinesent =
                     snapshot.child('Sent Editions').value?.toString() ?? '';
 
@@ -132,8 +217,8 @@ class _PostScreenState extends State<PostScreen> {
                     Magazinesent,
                   );
                 } else if (name.toLowerCase().contains(
-                      _searchFilterController.text.toLowerCase(),
-                    ) ||
+                  _searchFilterController.text.toLowerCase(),
+                ) ||
                     mentor.toLowerCase().contains(
                       _searchFilterController.text.toLowerCase(),
                     ) ||
@@ -185,25 +270,25 @@ class _PostScreenState extends State<PostScreen> {
   }
 
   Widget _buildListTile(
-    BuildContext context,
-    DataSnapshot snapshot,
-    String name,
-    String mentor,
-    String city,
-    String club,
-    String pname,
-    String ages,
-    String dateS,
-    String dateE,
-    String pnumber,
-    String address,
-    String id,
-    String dob,
-    String paymentStatus,
-    String NumberofMagazine,
-    String magazinesent,
-    String subscriptionplan,
-  ) {
+      BuildContext context,
+      DataSnapshot snapshot,
+      String name,
+      String mentor,
+      String city,
+      String club,
+      String pname,
+      String ages,
+      String dateS,
+      String dateE,
+      String pnumber,
+      String address,
+      String id,
+      String dob,
+      String paymentStatus,
+      String NumberofMagazine,
+      String magazinesent,
+      String subscriptionplan,
+      ) {
     int totalAllowed = getAllowedBasedOnPlan(subscriptionplan);
     int sentCount = magazinesent
         .split(', ')
@@ -256,39 +341,26 @@ class _PostScreenState extends State<PostScreen> {
     );
   }
 
-  int getAllowedBasedOnPlan(String plan) {
-    switch (plan.trim().toLowerCase()) {
-      case 'one year':
-        return 3;
-      case 'two year':
-        return 6;
-      case 'three year':
-        return 9;
-      default:
-        return 0;
-    }
-  }
-
   Widget _buildTrailingActions(
-    BuildContext context,
-    String name,
-    String mentor,
-    String city,
-    String club,
-    String pname,
-    String ages,
-    String dateS,
-    String dateE,
-    String pnumber,
-    String address,
-    String id,
-    String dob,
-    String paymentStatus,
-    String NumberofMagazine,
-    String subscriptionplan,
-    String magazinesent,
-    DataSnapshot snapshot,
-  ) {
+      BuildContext context,
+      String name,
+      String mentor,
+      String city,
+      String club,
+      String pname,
+      String ages,
+      String dateS,
+      String dateE,
+      String pnumber,
+      String address,
+      String id,
+      String dob,
+      String paymentStatus,
+      String NumberofMagazine,
+      String subscriptionplan,
+      String magazinesent,
+      DataSnapshot snapshot,
+      ) {
     Set<String> selectedEditions = magazinesent.split(', ').toSet();
 
     return SizedBox(
@@ -379,14 +451,14 @@ class _PostScreenState extends State<PostScreen> {
     _auth
         .signOut()
         .then((_) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const loginscreen()),
-          );
-        })
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const loginscreen()),
+      );
+    })
         .onError((error, stackTrace) {
-          Utils().toastmessage(context,error.toString());
-        });
+      Utils().toastmessage(context,error.toString());
+    });
   }
 
   Future<void> _deleteItem(BuildContext context, String id) async {
@@ -403,11 +475,11 @@ class _PostScreenState extends State<PostScreen> {
             .child(itemKey)
             .remove()
             .then((_) {
-              Utils().toastmessage(context,'Deleted Successfully');
-            })
+          Utils().toastmessage(context,'Deleted Successfully');
+        })
             .onError((error, stackTrace) {
-              Utils().toastmessage(context,error.toString());
-            });
+          Utils().toastmessage(context,error.toString());
+        });
       }
     }
   }
@@ -433,6 +505,9 @@ class _PostScreenState extends State<PostScreen> {
     } else if (rawEditions is String) {
       selectedEditions = rawEditions.split(', ').toSet();
     }
+
+    // Store the original subscription plan
+    String originalSubscriptionPlan = subscriptionPlan;
 
     showDialog(
       context: context,
@@ -493,28 +568,28 @@ class _PostScreenState extends State<PostScreen> {
                                 title: const Text("Change Subscription Plan"),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
-                                  children:
-                                      [
-                                        'One Year',
-                                        'Two Year',
-                                        'Three Year',
-                                      ].map((plan) {
-                                        return ListTile(
-                                          title: Text(plan),
-                                          onTap: () {
-                                            setState(() {
-                                              _editssController.text = plan;
-                                              selectedEditions
-                                                  .clear(); // clear existing
-                                              _editMagazinesController.text =
-                                                  getAllowedBasedOnPlan(
-                                                    plan,
-                                                  ).toString();
-                                            });
-                                            Navigator.pop(context);
-                                          },
-                                        );
-                                      }).toList(),
+                                  children: [
+                                    'One Year',
+                                    'Two Year',
+                                    'Three Year',
+                                  ].map((plan) {
+                                    return ListTile(
+                                      title: Text(plan),
+                                      onTap: () {
+                                        setState(() {
+                                          _editssController.text = plan;
+
+                                          // Calculate total magazines for extension
+                                          final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
+                                          final newDetails = _getSubscriptionDetails(plan);
+                                          final totalMagazines = originalDetails['magazines']! + newDetails['magazines']!;
+
+                                          _editMagazinesController.text = totalMagazines.toString();
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                    );
+                                  }).toList(),
                                 ),
                               ),
                             );
@@ -536,19 +611,6 @@ class _PostScreenState extends State<PostScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // NEW: Show current selected editions
-                    if (selectedEditions.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          'Currently Selected: ${selectedEditions.join(', ')}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-
                     const Text(
                       'Select Magazine Editions:',
                       style: TextStyle(
@@ -556,258 +618,12 @@ class _PostScreenState extends State<PostScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    CheckboxListTile(
-                      title: const Text('Spring Edition 2025'),
-                      value: selectedEditions.contains('Spring Edition 2025'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
-                            context,"You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Spring Edition 2025');
-                          } else {
-                            selectedEditions.remove('Spring Edition 2025');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Summer Edition 2025'),
-                      value: selectedEditions.contains('Summer Edition 2025'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(
-                            context,"You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Summer Edition 2025');
-                          } else {
-                            selectedEditions.remove('Summer Edition 2025');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Winter Edition 2025'),
-                      value: selectedEditions.contains('Winter Edition 2025'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Winter Edition 2025');
-                          } else {
-                            selectedEditions.remove('Winter Edition 2025');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Spring Edition 2026'),
-                      value: selectedEditions.contains('Spring Edition 2026'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Spring Edition 2026');
-                          } else {
-                            selectedEditions.remove('Spring Edition 2026');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Summer Edition 2026'),
-                      value: selectedEditions.contains('Summer Edition 2026'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Summer Edition 2026');
-                          } else {
-                            selectedEditions.remove('Summer Edition 2026');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Winter Edition 2026'),
-                      value: selectedEditions.contains('Winter Edition 2026'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Winter Edition 2026');
-                          } else {
-                            selectedEditions.remove('Winter Edition 2026');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Spring Edition 2027'),
-                      value: selectedEditions.contains('Spring Edition 2027'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Spring Edition 2027');
-                          } else {
-                            selectedEditions.remove('Spring Edition 2027');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Summer Edition 2027'),
-                      value: selectedEditions.contains('Summer Edition 2027'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Summer Edition 2027');
-                          } else {
-                            selectedEditions.remove('Summer Edition 2027');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Winter Edition 2027'),
-                      value: selectedEditions.contains('Winter Edition 2027'),
-                      onChanged: (value) {
-                        int totalAllowed = getAllowedBasedOnPlan(
-                          _editssController.text,
-                        );
-
-                        if (value == true &&
-                            selectedEditions.length >= totalAllowed) {
-                          Utils().toastmessage(context,
-                            "You have reached the limit. Please change the subscription plan to select more editions.",
-                          );
-                          return; // prevent adding more
-                        }
-
-                        setState(() {
-                          if (value == true) {
-                            selectedEditions.add('Winter Edition 2027');
-                          } else {
-                            selectedEditions.remove('Winter Edition 2027');
-                          }
-                          _editMagazinesController.text =
-                              (totalAllowed - selectedEditions.length)
-                                  .toString();
-                        });
-                      },
+                    // CORRECTED: Pass correct parameters
+                    _buildMagazineFilterChips(
+                      selectedEditions,
+                      _editssController.text,    // extension plan
+                      originalSubscriptionPlan,  // original plan
+                      setState,
                     ),
                   ],
                 ),
@@ -824,28 +640,21 @@ class _PostScreenState extends State<PostScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    int totalAllowed = getAllowedBasedOnPlan(
-                      _editssController.text,
-                    );
+                    final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
+                    final newDetails = _getSubscriptionDetails(_editssController.text);
+                    final totalAllowed = originalDetails['magazines']! + newDetails['magazines']!;
                     int remaining = totalAllowed - selectedEditions.length;
-                    String newStartDate = DateTime.now()
-                        .toIso8601String()
-                        .split('T')[0];
                     String editionsString = selectedEditions.join(', ');
+
                     await _updateData(id, selectedEditions)
-                        .then(
-                          (_) => _updateNumberOfMagazines(
-                            id,
-                            remaining.toString(),
-                          ),
-                        )
+                        .then((_) => _updateNumberOfMagazines(id, remaining.toString()))
                         .then((_) {
-                          Navigator.pop(context);
-                          setState(() {}); // refresh FirebaseAnimatedList
-                        })
+                      Navigator.pop(context);
+                      setState(() {}); // refresh FirebaseAnimatedList
+                    })
                         .catchError((error) {
-                          Utils().toastmessage(context,error.toString());
-                        });
+                      Utils().toastmessage(context, error.toString());
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 1, 31, 56),
@@ -866,6 +675,338 @@ class _PostScreenState extends State<PostScreen> {
       },
     );
   }
+// CORRECTED: Fixed helper method to generate ONLY extension years (not consecutive from highest)
+  List<String> _generateAdditionalEditions(
+      String originalSubscriptionPlan,
+      String extensionSubscriptionPlan,
+      Set<String> alreadySelectedEditions
+      ) {
+    final seasons = ['Spring', 'Summer', 'Winter'];
+    final additionalEditions = <String>[];
+
+    // Get the years covered by original subscription
+    final originalYears = _getYearsCoveredByPlan(originalSubscriptionPlan);
+
+    // Calculate the extension years based on original plan's end year
+    final extensionYears = _calculateExtensionYears(originalSubscriptionPlan, extensionSubscriptionPlan);
+
+    // Generate editions ONLY for the calculated extension years
+    for (int year in extensionYears) {
+      for (String season in seasons) {
+        final edition = '$season Edition $year';
+        // Only add if not already selected
+        if (!alreadySelectedEditions.contains(edition)) {
+          additionalEditions.add(edition);
+        }
+      }
+    }
+
+    return additionalEditions;
+  }
+
+// NEW: Helper method to get years covered by original subscription plan
+  List<int> _getYearsCoveredByPlan(String subscriptionPlan) {
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final details = _getSubscriptionDetails(subscriptionPlan);
+    final years = <int>[];
+
+    for (int i = 0; i < details['years']!; i++) {
+      years.add(currentYear + i);
+    }
+
+    return years;
+  }
+
+// NEW: Helper method to calculate extension years based on original plan
+  List<int> _calculateExtensionYears(String originalPlan, String extensionPlan) {
+    final originalYears = _getYearsCoveredByPlan(originalPlan);
+    final extensionDetails = _getSubscriptionDetails(extensionPlan);
+    final extensionYears = <int>[];
+
+    // Extension years start from the year after original plan ends
+    final originalEndYear = originalYears.last;
+
+    for (int i = 1; i <= extensionDetails['years']!; i++) {
+      extensionYears.add(originalEndYear + i);
+    }
+
+    return extensionYears;
+  }
+
+// CORRECTED: FilterChip design method - Fixed to show ONLY extension years
+  Widget _buildMagazineFilterChips(
+      Set<String> selectedEditions,
+      String newSubscriptionPlan,
+      String originalSubscriptionPlan,
+      StateSetter setState,
+      ) {
+    final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
+    final newDetails = _getSubscriptionDetails(newSubscriptionPlan);
+
+    // Get years covered by original and extension plans
+    final originalYears = _getYearsCoveredByPlan(originalSubscriptionPlan);
+    final extensionYears = _calculateExtensionYears(originalSubscriptionPlan, newSubscriptionPlan);
+
+    // Separate already selected editions by original vs extension years
+    final originalSelectedEditions = selectedEditions.where((edition) {
+      final year = _extractYearFromEdition(edition);
+      return originalYears.contains(year);
+    }).toSet();
+
+    final extensionSelectedEditions = selectedEditions.where((edition) {
+      final year = _extractYearFromEdition(edition);
+      return extensionYears.contains(year);
+    }).toSet();
+
+    // Generate ONLY extension year editions (available for selection)
+    final availableExtensionEditions = _generateAdditionalEditions(
+        originalSubscriptionPlan,
+        newSubscriptionPlan,
+        selectedEditions
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Show current subscription info
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Original Plan: $originalSubscriptionPlan (${originalYears.join(', ')})',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                'Extension: +$newSubscriptionPlan (${extensionYears.join(', ')})',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                'Total Magazines: ${originalDetails['magazines']! + newDetails['magazines']!} | Selected: ${selectedEditions.length}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.blue[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Show original subscription selections (read-only)
+        if (originalSelectedEditions.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4.0),
+            child: Text(
+              'Original Subscription (Cannot Change):',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: originalSelectedEditions.map((edition) {
+              return FilterChip(
+                label: Text(edition),
+                selected: true,
+                onSelected: null, // Disabled - original subscription
+                selectedColor: Colors.grey[300],
+                checkmarkColor: Colors.grey[600],
+                labelStyle: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // Show extension selections (already selected from extension years)
+        if (extensionSelectedEditions.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4.0),
+            child: Text(
+              'Extension - Already Selected:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: extensionSelectedEditions.map((edition) {
+              return FilterChip(
+                label: Text(edition),
+                selected: true,
+                onSelected: null, // Disabled - already selected
+                selectedColor: Colors.grey[300],
+                checkmarkColor: Colors.grey[600],
+                labelStyle: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // Show available extension editions for selection
+        if (availableExtensionEditions.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4.0),
+            child: Text(
+              'Available Extension Editions (${extensionYears.join(', ')}):',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: availableExtensionEditions.map((edition) {
+              return FilterChip(
+                label: Text(edition),
+                selected: false, // Available for selection
+                onSelected: (selected) {
+                  // Calculate total allowed (original + extension)
+                  final totalAllowed = originalDetails['magazines']! + newDetails['magazines']!;
+
+                  if (selected && selectedEditions.length >= totalAllowed) {
+                    Utils().toastmessage(
+                      context,
+                      "You have reached the limit of $totalAllowed magazines for this plan.",
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    if (selected) {
+                      selectedEditions.add(edition);
+                    }
+                    // Update remaining magazines display
+                    final remaining = totalAllowed - selectedEditions.length;
+                    _editMagazinesController.text = remaining.toString();
+                  });
+                },
+                selectedColor: const Color.fromARGB(255, 1, 31, 56).withOpacity(0.2),
+                checkmarkColor: const Color.fromARGB(255, 1, 31, 56),
+                backgroundColor: Colors.white,
+                side: BorderSide(
+                  color: const Color.fromARGB(255, 1, 31, 56).withOpacity(0.3),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+
+        // Show completion message
+        if (availableExtensionEditions.isEmpty && selectedEditions.length >= (originalDetails['magazines']! + newDetails['magazines']!))
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'All extension magazines selected!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Show progress indicator
+        Padding(
+          padding: const EdgeInsets.only(top: 12.0),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Extension Progress: ${extensionSelectedEditions.length}/${newDetails['magazines']!} selected',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Total Progress: ${selectedEditions.length}/${originalDetails['magazines']! + newDetails['magazines']!} magazines',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+// NEW: Helper method to extract year from edition string
+  int _extractYearFromEdition(String edition) {
+    final yearMatch = RegExp(r'\b(20\d{2})\b').firstMatch(edition);
+    return yearMatch != null ? int.parse(yearMatch.group(0)!) : 0;
+  }
+
+
+
 
   Future<void> _updateData(String id, Set<String> selectedEditions) async {
     DatabaseEvent event = await _ref.orderByChild('id').equalTo(id).once();
@@ -885,26 +1026,26 @@ class _PostScreenState extends State<PostScreen> {
         await _ref
             .child(itemKey)
             .update({
-              'name': _editController.text,
-              'mentor': _editsController.text,
-              'Sent Editions': editionsString,
-            })
+          'name': _editController.text,
+          'mentor': _editsController.text,
+          'Sent Editions': editionsString,
+        })
             .then((_) {
-               if(!mounted) return;
-              Utils().toastmessage(context,'Updated Successfully');
-            })
+          if(!mounted) return;
+          Utils().toastmessage(context,'Updated Successfully');
+        })
             .catchError((error) {
-               if(!mounted) return;
-              Utils().toastmessage(context,error.toString());
-            });
+          if(!mounted) return;
+          Utils().toastmessage(context,error.toString());
+        });
       }
     }
   }
 
   Future<void> _updateNumberOfMagazines(
-    String id,
-    String numberOfMagazines,
-  ) async {
+      String id,
+      String numberOfMagazines,
+      ) async {
     DatabaseEvent event = await _ref.orderByChild('id').equalTo(id).once();
 
     if (event.snapshot.value != null) {
@@ -920,13 +1061,13 @@ class _PostScreenState extends State<PostScreen> {
             .child(itemKey)
             .update({'Number of Magazine': numberOfMagazines})
             .then((_) {
-               if(!mounted) return;
-              Utils().toastmessage(context,'Number of Magazines Updated Successfully');
-            })
+          if(!mounted) return;
+          Utils().toastmessage(context,'Number of Magazines Updated Successfully');
+        })
             .catchError((error) {
-               if(!mounted) return;
-              Utils().toastmessage(context,error.toString());
-            });
+          if(!mounted) return;
+          Utils().toastmessage(context,error.toString());
+        });
       }
     }
   }
