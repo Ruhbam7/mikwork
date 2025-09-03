@@ -649,11 +649,8 @@ class _PostScreenState extends State<PostScreen> {
                     await _updateData(id, selectedEditions)
                         .then((_) => _updateNumberOfMagazines(id, remaining.toString()))
                         .then((_) {
-                      Navigator.pop(context);
-                      setState(() {}); // refresh FirebaseAnimatedList
-                    })
-                        .catchError((error) {
-                      Utils().toastmessage(context, error.toString());
+                      // Navigator.pop(context);   // <-- closes AlertDialog
+                      // setState(() {});          // <-- rebuild after Navigator.pop (dangerous)
                     });
                   },
                   style: ElevatedButton.styleFrom(
@@ -734,21 +731,31 @@ class _PostScreenState extends State<PostScreen> {
     return extensionYears;
   }
 
-// CORRECTED: FilterChip design method - Fixed to show ONLY extension years
+  // REPLACE your existing _buildMagazineFilterChips with this one
   Widget _buildMagazineFilterChips(
       Set<String> selectedEditions,
-      String newSubscriptionPlan,
-      String originalSubscriptionPlan,
+      String newSubscriptionPlan,        // extension plan (from _editssController.text)
+      String originalSubscriptionPlan,   // original plan
       StateSetter setState,
       ) {
+    // Plan details
     final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
     final newDetails = _getSubscriptionDetails(newSubscriptionPlan);
+    final int totalAllowed = originalDetails['magazines']! + newDetails['magazines']!;
 
-    // Get years covered by original and extension plans
+    // Years covered by original plan and by extension
     final originalYears = _getYearsCoveredByPlan(originalSubscriptionPlan);
     final extensionYears = _calculateExtensionYears(originalSubscriptionPlan, newSubscriptionPlan);
 
-    // Separate already selected editions by original vs extension years
+    // Helper: seasons per year
+    const seasons = ['Spring', 'Summer', 'Winter'];
+
+    // Build ALL editions that belong to the original plan years
+    final allOriginalEditions = <String>{
+      for (final y in originalYears) ...seasons.map((s) => '$s Edition $y'),
+    };
+
+    // Split currently selected into original vs extension (for display)
     final originalSelectedEditions = selectedEditions.where((edition) {
       final year = _extractYearFromEdition(edition);
       return originalYears.contains(year);
@@ -759,17 +766,27 @@ class _PostScreenState extends State<PostScreen> {
       return extensionYears.contains(year);
     }).toSet();
 
-    // Generate ONLY extension year editions (available for selection)
+    // Pending = original plan editions the user did NOT choose during Add
+    final pendingOriginalEditions =
+    allOriginalEditions.difference(originalSelectedEditions);
+
+    // Generate ONLY extension-year editions still available (not already chosen)
     final availableExtensionEditions = _generateAdditionalEditions(
-        originalSubscriptionPlan,
-        newSubscriptionPlan,
-        selectedEditions
+      originalSubscriptionPlan,
+      newSubscriptionPlan,
+      selectedEditions,
     );
+
+    // Utility to update remaining count after a toggle
+    void _refreshRemaining() {
+      final remaining = totalAllowed - selectedEditions.length;
+      _editMagazinesController.text = remaining.toString();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Show current subscription info
+        // --- Info summary ---
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -782,10 +799,7 @@ class _PostScreenState extends State<PostScreen> {
             children: [
               Text(
                 'Original Plan: $originalSubscriptionPlan (${originalYears.join(', ')})',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               Text(
                 'Extension: +$newSubscriptionPlan (${extensionYears.join(', ')})',
@@ -796,7 +810,7 @@ class _PostScreenState extends State<PostScreen> {
                 ),
               ),
               Text(
-                'Total Magazines: ${originalDetails['magazines']! + newDetails['magazines']!} | Selected: ${selectedEditions.length}',
+                'Total Magazines: $totalAllowed | Selected: ${selectedEditions.length}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.blue[700],
@@ -809,12 +823,12 @@ class _PostScreenState extends State<PostScreen> {
 
         const SizedBox(height: 12),
 
-        // Show original subscription selections (read-only)
+        // --- Original (already selected; read-only) ---
         if (originalSelectedEditions.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(bottom: 4.0),
             child: Text(
-              'Original Subscription (Cannot Change):',
+              'Original Subscription (Already Selected):',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -829,7 +843,7 @@ class _PostScreenState extends State<PostScreen> {
               return FilterChip(
                 label: Text(edition),
                 selected: true,
-                onSelected: null, // Disabled - original subscription
+                onSelected: null, // read-only
                 selectedColor: Colors.grey[300],
                 checkmarkColor: Colors.grey[600],
                 labelStyle: TextStyle(
@@ -842,7 +856,56 @@ class _PostScreenState extends State<PostScreen> {
           const SizedBox(height: 12),
         ],
 
-        // Show extension selections (already selected from extension years)
+        // --- Pending (from original plan; can select now) ---
+        if (pendingOriginalEditions.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4.0),
+            child: Text(
+              'Pending Editions (Original Plan):',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.redAccent,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: pendingOriginalEditions.map((edition) {
+              final isSelected = selectedEditions.contains(edition);
+              return FilterChip(
+                label: Text(edition),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected && selectedEditions.length >= totalAllowed) {
+                    Utils().toastmessage(
+                      context,
+                      "You have reached the limit of $totalAllowed magazines for this plan.",
+                    );
+                    return;
+                  }
+                  setState(() {
+                    if (selected) {
+                      selectedEditions.add(edition);
+                    } else {
+                      selectedEditions.remove(edition);
+                    }
+                    _refreshRemaining();
+                  });
+                },
+                selectedColor:
+                const Color.fromARGB(255, 255, 205, 210).withValues(alpha: 0.6),
+                checkmarkColor: Colors.red,
+                backgroundColor: Colors.white,
+                side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // --- Extension (already selected from extension years; read-only) ---
         if (extensionSelectedEditions.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(bottom: 4.0),
@@ -862,7 +925,7 @@ class _PostScreenState extends State<PostScreen> {
               return FilterChip(
                 label: Text(edition),
                 selected: true,
-                onSelected: null, // Disabled - already selected
+                onSelected: null, // read-only
                 selectedColor: Colors.grey[300],
                 checkmarkColor: Colors.grey[600],
                 labelStyle: TextStyle(
@@ -875,7 +938,7 @@ class _PostScreenState extends State<PostScreen> {
           const SizedBox(height: 12),
         ],
 
-        // Show available extension editions for selection
+        // --- Extension (available to select) ---
         if (availableExtensionEditions.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 4.0),
@@ -894,11 +957,8 @@ class _PostScreenState extends State<PostScreen> {
             children: availableExtensionEditions.map((edition) {
               return FilterChip(
                 label: Text(edition),
-                selected: false, // Available for selection
+                selected: false,
                 onSelected: (selected) {
-                  // Calculate total allowed (original + extension)
-                  final totalAllowed = originalDetails['magazines']! + newDetails['magazines']!;
-
                   if (selected && selectedEditions.length >= totalAllowed) {
                     Utils().toastmessage(
                       context,
@@ -906,17 +966,15 @@ class _PostScreenState extends State<PostScreen> {
                     );
                     return;
                   }
-
                   setState(() {
                     if (selected) {
                       selectedEditions.add(edition);
+                      _refreshRemaining();
                     }
-                    // Update remaining magazines display
-                    final remaining = totalAllowed - selectedEditions.length;
-                    _editMagazinesController.text = remaining.toString();
                   });
                 },
-                selectedColor: const Color.fromARGB(255, 1, 31, 56).withOpacity(0.2),
+                selectedColor:
+                const Color.fromARGB(255, 1, 31, 56).withOpacity(0.2),
                 checkmarkColor: const Color.fromARGB(255, 1, 31, 56),
                 backgroundColor: Colors.white,
                 side: BorderSide(
@@ -927,8 +985,9 @@ class _PostScreenState extends State<PostScreen> {
           ),
         ],
 
-        // Show completion message
-        if (availableExtensionEditions.isEmpty && selectedEditions.length >= (originalDetails['magazines']! + newDetails['magazines']!))
+        // Completion message when limit hit and nothing else to pick
+        if (availableExtensionEditions.isEmpty &&
+            selectedEditions.length >= totalAllowed)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Container(
@@ -944,7 +1003,7 @@ class _PostScreenState extends State<PostScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'All extension magazines selected!',
+                      'All magazines selected!',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.green[700],
@@ -957,7 +1016,7 @@ class _PostScreenState extends State<PostScreen> {
             ),
           ),
 
-        // Show progress indicator
+        // Progress
         Padding(
           padding: const EdgeInsets.only(top: 12.0),
           child: Container(
@@ -985,7 +1044,7 @@ class _PostScreenState extends State<PostScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Total Progress: ${selectedEditions.length}/${originalDetails['magazines']! + newDetails['magazines']!} magazines',
+                  'Total Progress: ${selectedEditions.length}/$totalAllowed magazines',
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey[600],
@@ -998,6 +1057,8 @@ class _PostScreenState extends State<PostScreen> {
       ],
     );
   }
+
+
 
 // NEW: Helper method to extract year from edition string
   int _extractYearFromEdition(String edition) {
