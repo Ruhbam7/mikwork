@@ -22,8 +22,9 @@ class _PostScreenState extends State<PostScreen> {
   final TextEditingController _editController = TextEditingController();
   final TextEditingController _editsController = TextEditingController();
   final TextEditingController _editssController = TextEditingController();
-  final TextEditingController _editMagazinesController =
-  TextEditingController();
+  final TextEditingController _editMagazinesController = TextEditingController();
+
+  bool planChanged = false;
 
   // Add these new methods for dynamic year generation
   Map<String, int> _getSubscriptionDetails(String plan) {
@@ -575,19 +576,20 @@ class _PostScreenState extends State<PostScreen> {
                                   ].map((plan) {
                                     return ListTile(
                                       title: Text(plan),
-                                      onTap: () {
-                                        setState(() {
-                                          _editssController.text = plan;
+                                        onTap: () {
+                                          setState(() {
+                                            planChanged = true;   // <--- NEW FLAG
+                                            _editssController.text = plan;
 
-                                          // Calculate total magazines for extension
-                                          final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
-                                          final newDetails = _getSubscriptionDetails(plan);
-                                          final totalMagazines = originalDetails['magazines']! + newDetails['magazines']!;
+                                            final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
+                                            final newDetails = _getSubscriptionDetails(plan);
 
-                                          _editMagazinesController.text = totalMagazines.toString();
-                                        });
-                                        Navigator.pop(context);
-                                      },
+                                            final totalMagazines = originalDetails['magazines']! + newDetails['magazines']!;
+                                            _editMagazinesController.text = totalMagazines.toString();
+                                          });
+                                          Navigator.pop(context);
+                                        }
+
                                     );
                                   }).toList(),
                                 ),
@@ -624,6 +626,7 @@ class _PostScreenState extends State<PostScreen> {
                       _editssController.text,    // extension plan
                       originalSubscriptionPlan,  // original plan
                       setState,
+                      planChanged: planChanged,
                     ),
                   ],
                 ),
@@ -672,34 +675,6 @@ class _PostScreenState extends State<PostScreen> {
       },
     );
   }
-// CORRECTED: Fixed helper method to generate ONLY extension years (not consecutive from highest)
-  List<String> _generateAdditionalEditions(
-      String originalSubscriptionPlan,
-      String extensionSubscriptionPlan,
-      Set<String> alreadySelectedEditions
-      ) {
-    final seasons = ['Spring', 'Summer', 'Winter'];
-    final additionalEditions = <String>[];
-
-    // Get the years covered by original subscription
-    final originalYears = _getYearsCoveredByPlan(originalSubscriptionPlan);
-
-    // Calculate the extension years based on original plan's end year
-    final extensionYears = _calculateExtensionYears(originalSubscriptionPlan, extensionSubscriptionPlan);
-
-    // Generate editions ONLY for the calculated extension years
-    for (int year in extensionYears) {
-      for (String season in seasons) {
-        final edition = '$season Edition $year';
-        // Only add if not already selected
-        if (!alreadySelectedEditions.contains(edition)) {
-          additionalEditions.add(edition);
-        }
-      }
-    }
-
-    return additionalEditions;
-  }
 
 // NEW: Helper method to get years covered by original subscription plan
   List<int> _getYearsCoveredByPlan(String subscriptionPlan) {
@@ -731,332 +706,207 @@ class _PostScreenState extends State<PostScreen> {
     return extensionYears;
   }
 
-  // REPLACE your existing _buildMagazineFilterChips with this one
   Widget _buildMagazineFilterChips(
       Set<String> selectedEditions,
-      String newSubscriptionPlan,        // extension plan (from _editssController.text)
-      String originalSubscriptionPlan,   // original plan
-      StateSetter setState,
-      ) {
-    // Plan details
-    final originalDetails = _getSubscriptionDetails(originalSubscriptionPlan);
-    final newDetails = _getSubscriptionDetails(newSubscriptionPlan);
-    final int totalAllowed = originalDetails['magazines']! + newDetails['magazines']!;
-
-    // Years covered by original plan and by extension
+      String newSubscriptionPlan,
+      String originalSubscriptionPlan,
+      StateSetter setState, {
+        required bool planChanged,
+      }) {
     final originalYears = _getYearsCoveredByPlan(originalSubscriptionPlan);
-    final extensionYears = _calculateExtensionYears(originalSubscriptionPlan, newSubscriptionPlan);
+    final extensionYears =
+    _calculateExtensionYears(originalSubscriptionPlan, newSubscriptionPlan);
 
-    // Helper: seasons per year
     const seasons = ['Spring', 'Summer', 'Winter'];
 
-    // Build ALL editions that belong to the original plan years
     final allOriginalEditions = <String>{
       for (final y in originalYears) ...seasons.map((s) => '$s Edition $y'),
     };
 
-    // Split currently selected into original vs extension (for display)
-    final originalSelectedEditions = selectedEditions.where((edition) {
-      final year = _extractYearFromEdition(edition);
+    final allExtensionEditions = <String>{
+      for (final y in extensionYears) ...seasons.map((s) => '$s Edition $y'),
+    };
+
+    // --- Split selections ---
+    final originalSelected = selectedEditions.where((e) {
+      final year = _extractYearFromEdition(e);
       return originalYears.contains(year);
     }).toSet();
 
-    final extensionSelectedEditions = selectedEditions.where((edition) {
-      final year = _extractYearFromEdition(edition);
+    final extensionSelected = selectedEditions.where((e) {
+      final year = _extractYearFromEdition(e);
       return extensionYears.contains(year);
     }).toSet();
 
-    // Pending = original plan editions the user did NOT choose during Add
-    final pendingOriginalEditions =
-    allOriginalEditions.difference(originalSelectedEditions);
+    // --- Pending editions ---
+    final pendingOriginal = allOriginalEditions.difference(originalSelected);
+    final pendingExtension = allExtensionEditions.difference(extensionSelected);
 
-    // Generate ONLY extension-year editions still available (not already chosen)
-    final availableExtensionEditions = _generateAdditionalEditions(
-      originalSubscriptionPlan,
-      newSubscriptionPlan,
-      selectedEditions,
-    );
-
-    // Utility to update remaining count after a toggle
-    void _refreshRemaining() {
-      final remaining = totalAllowed - selectedEditions.length;
-      _editMagazinesController.text = remaining.toString();
+    // --- Count logic ---
+    if (!planChanged) {
+      // Before extension → only pending original count
+      _editMagazinesController.text = pendingOriginal.length.toString();
+    } else {
+      // After extension → pending original + extension count
+      _editMagazinesController.text =
+          (pendingOriginal.length + pendingExtension.length).toString();
     }
 
+    // --- MODE 1: Pending only (before plan change) ---
+    if (!planChanged) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (originalSelected.isNotEmpty) ...[
+            const Text("Already Selected (Original):",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: originalSelected.map((edition) {
+                return FilterChip(
+                  label: Text(edition),
+                  selected: true,
+                  onSelected: null,
+                  selectedColor: Colors.grey[300],
+                  checkmarkColor: Colors.grey[600],
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (pendingOriginal.isNotEmpty) ...[
+            const Text("Pending Editions:",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.redAccent)),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: pendingOriginal.map((edition) {
+                final isSelected = selectedEditions.contains(edition);
+                return FilterChip(
+                  label: Text(edition),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        selectedEditions.add(edition);
+                      } else {
+                        selectedEditions.remove(edition);
+                      }
+                      // update count again
+                      _editMagazinesController.text =
+                          pendingOriginal.length.toString();
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      );
+    }
+
+    // --- MODE 2: After plan change (show both original + extension) ---
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- Info summary ---
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue[200]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Original Plan: $originalSubscriptionPlan (${originalYears.join(', ')})',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              Text(
-                'Extension: +$newSubscriptionPlan (${extensionYears.join(', ')})',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.green[700],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                'Total Magazines: $totalAllowed | Selected: ${selectedEditions.length}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.blue[700],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // --- Original (already selected; read-only) ---
-        if (originalSelectedEditions.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(bottom: 4.0),
-            child: Text(
-              'Original Subscription (Already Selected):',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey,
-              ),
-            ),
-          ),
+        if (originalSelected.isNotEmpty) ...[
+          const Text("Already Selected (Original):",
+              style: TextStyle(fontWeight: FontWeight.bold)),
           Wrap(
-            spacing: 8.0,
-            runSpacing: 4.0,
-            children: originalSelectedEditions.map((edition) {
+            spacing: 8,
+            runSpacing: 4,
+            children: originalSelected.map((edition) {
               return FilterChip(
                 label: Text(edition),
                 selected: true,
-                onSelected: null, // read-only
+                onSelected: null,
                 selectedColor: Colors.grey[300],
                 checkmarkColor: Colors.grey[600],
-                labelStyle: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
               );
             }).toList(),
           ),
           const SizedBox(height: 12),
         ],
-
-        // --- Pending (from original plan; can select now) ---
-        if (pendingOriginalEditions.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(bottom: 4.0),
-            child: Text(
-              'Pending Editions (Original Plan):',
+        if (pendingOriginal.isNotEmpty) ...[
+          const Text("Pending Editions (Original):",
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.redAccent,
-              ),
-            ),
-          ),
+                  fontWeight: FontWeight.bold, color: Colors.redAccent)),
           Wrap(
-            spacing: 8.0,
-            runSpacing: 4.0,
-            children: pendingOriginalEditions.map((edition) {
+            spacing: 8,
+            runSpacing: 4,
+            children: pendingOriginal.map((edition) {
               final isSelected = selectedEditions.contains(edition);
               return FilterChip(
                 label: Text(edition),
                 selected: isSelected,
                 onSelected: (selected) {
-                  if (selected && selectedEditions.length >= totalAllowed) {
-                    Utils().toastmessage(
-                      context,
-                      "You have reached the limit of $totalAllowed magazines for this plan.",
-                    );
-                    return;
-                  }
                   setState(() {
                     if (selected) {
                       selectedEditions.add(edition);
                     } else {
                       selectedEditions.remove(edition);
                     }
-                    _refreshRemaining();
+                    _editMagazinesController.text =
+                        (pendingOriginal.length + pendingExtension.length)
+                            .toString();
                   });
                 },
-                selectedColor:
-                const Color.fromARGB(255, 255, 205, 210).withValues(alpha: 0.6),
-                checkmarkColor: Colors.red,
-                backgroundColor: Colors.white,
-                side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
               );
             }).toList(),
           ),
           const SizedBox(height: 12),
         ],
-
-        // --- Extension (already selected from extension years; read-only) ---
-        if (extensionSelectedEditions.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(bottom: 4.0),
-            child: Text(
-              'Extension - Already Selected:',
+        if (extensionSelected.isNotEmpty) ...[
+          const Text("Already Selected (Extension):",
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.orange,
-              ),
-            ),
-          ),
+                  fontWeight: FontWeight.bold, color: Colors.orange)),
           Wrap(
-            spacing: 8.0,
-            runSpacing: 4.0,
-            children: extensionSelectedEditions.map((edition) {
+            spacing: 8,
+            runSpacing: 4,
+            children: extensionSelected.map((edition) {
               return FilterChip(
                 label: Text(edition),
                 selected: true,
-                onSelected: null, // read-only
-                selectedColor: Colors.grey[300],
-                checkmarkColor: Colors.grey[600],
-                labelStyle: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
+                onSelected: null,
+                selectedColor: Colors.orange[100],
+                checkmarkColor: Colors.orange[800],
               );
             }).toList(),
           ),
           const SizedBox(height: 12),
         ],
-
-        // --- Extension (available to select) ---
-        if (availableExtensionEditions.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4.0),
-            child: Text(
-              'Available Extension Editions (${extensionYears.join(', ')}):',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ),
+        if (pendingExtension.isNotEmpty) ...[
+          const Text("Pending Editions (Extension):",
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.blueAccent)),
           Wrap(
-            spacing: 8.0,
-            runSpacing: 4.0,
-            children: availableExtensionEditions.map((edition) {
+            spacing: 8,
+            runSpacing: 4,
+            children: pendingExtension.map((edition) {
               return FilterChip(
                 label: Text(edition),
                 selected: false,
                 onSelected: (selected) {
-                  if (selected && selectedEditions.length >= totalAllowed) {
-                    Utils().toastmessage(
-                      context,
-                      "You have reached the limit of $totalAllowed magazines for this plan.",
-                    );
-                    return;
-                  }
                   setState(() {
                     if (selected) {
                       selectedEditions.add(edition);
-                      _refreshRemaining();
                     }
+                    _editMagazinesController.text =
+                        (pendingOriginal.length + pendingExtension.length)
+                            .toString();
                   });
                 },
-                selectedColor:
-                const Color.fromARGB(255, 1, 31, 56).withOpacity(0.2),
-                checkmarkColor: const Color.fromARGB(255, 1, 31, 56),
-                backgroundColor: Colors.white,
-                side: BorderSide(
-                  color: const Color.fromARGB(255, 1, 31, 56).withOpacity(0.3),
-                ),
               );
             }).toList(),
           ),
         ],
-
-        // Completion message when limit hit and nothing else to pick
-        if (availableExtensionEditions.isEmpty &&
-            selectedEditions.length >= totalAllowed)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green[700], size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'All magazines selected!',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-        // Progress
-        Padding(
-          padding: const EdgeInsets.only(top: 12.0),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.orange[50],
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Extension Progress: ${extensionSelectedEditions.length}/${newDetails['magazines']!} selected',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Total Progress: ${selectedEditions.length}/$totalAllowed magazines',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
+
+
 
 
 
@@ -1133,34 +983,4 @@ class _PostScreenState extends State<PostScreen> {
     }
   }
 
-  Future<void> _showMagazineEditDialog(BuildContext context, String id) async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Edit Number of Magazines'),
-          content: TextField(
-            controller: _editMagazinesController,
-            decoration: const InputDecoration(labelText: 'Number of Magazines'),
-            keyboardType: TextInputType.number,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _updateNumberOfMagazines(id, _editMagazinesController.text);
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

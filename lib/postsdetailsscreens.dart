@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hope/pendingscreen.dart';
+import 'package:hope/utils.dart';
 
 class PostDetailsScreen extends StatefulWidget {
   final String name;
@@ -107,7 +108,11 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
             _buildDetailRow('Parent Name', widget.parentname, Icons.person_outline),
             _buildDetailRow('Address', widget.address, Icons.home),
             _buildDetailRow('Age', widget.age, Icons.cake),
-            _buildDetailRow('Phone Number', widget.phonenumber, Icons.phone),
+            GestureDetector(
+                onTap: () {
+                  Utils().makePhoneCall(widget.phonenumber);
+                },
+                child: _buildDetailRow('Phone Number', widget.phonenumber, Icons.phone)),
             _buildDetailRow('Payment Status', widget.paymentStatus, Icons.payment),
             _buildDetailRow('Number of Magazines Entitled', widget.numberOfMagazines, Icons.library_books),
             _buildDetailRow('Magazine Editions Sent', widget.selectedMagazineEditions.join(', '), Icons.library_books),

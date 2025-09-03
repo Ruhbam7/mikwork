@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hope/postscreen.dart';
+import 'package:hope/utils.dart';
 //this is the one that has to be useeee
 
 class PostDetailsScreen extends StatefulWidget {
@@ -108,7 +109,21 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
             _buildDetailRow('Parent Name', widget.parentname, Icons.person_outline),
             _buildDetailRow('Address', widget.address, Icons.home),
             _buildDetailRow('Age', widget.age, Icons.cake),
-            _buildDetailRow('Phone Number', widget.phonenumber, Icons.phone),
+            GestureDetector(
+              onTap: () {
+                Utils().makePhoneCall(widget.phonenumber);
+              },
+              child: Card(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                elevation: 2.0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                child: ListTile(
+                  leading: Icon(Icons.phone, color: Colors.blue),
+                  title: Text("Phone Number", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black54)),
+                  subtitle: Text(widget.phonenumber, style: const TextStyle(fontSize: 16, color: Colors.black)),
+                ),
+              ),
+            ),
             _buildDetailRow('Payment Status', widget.paymentStatus, Icons.payment),
             _buildDetailRow('Number of Magazines Entitled', widget.numberOfMagazines, Icons.library_books),
             _buildDetailRow('Subscription Plan', widget.selectedMagazineEditions.join(', '), Icons.library_books),
